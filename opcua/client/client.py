@@ -364,11 +364,12 @@ class Client(object):
         params = ua.FindServersOnNetworkParameters()
         return self.uaclient.find_servers_on_network(params)
 
-    def create_session(self):
+    def create_session(self, maxResponseSize=0):
         """
         send a CreateSessionRequest to server with reasonable parameters.
         If you want o modify settings look at code of this methods
         and make your own
+        maxResponseSize = 0 means no max size
         """
         desc = ua.ApplicationDescription()
         desc.ApplicationUri = self.application_uri
@@ -385,7 +386,7 @@ class Client(object):
         params.EndpointUrl = self.server_url.geturl()
         params.SessionName = self.description + " Session" + str(self._session_counter)
         params.RequestedSessionTimeout = self.session_timeout
-        params.MaxResponseMessageSize = 0  # means no max size
+        params.MaxResponseMessageSize = maxResponseSize 
         response = self.uaclient.create_session(params)
         if self.security_policy.client_certificate is None:
             data = nonce
