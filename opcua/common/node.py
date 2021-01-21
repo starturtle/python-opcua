@@ -291,7 +291,7 @@ class Node(object):
         results = self.server.read(params)
         return results
 
-    def get_children(self, refs=ua.ObjectIds.HierarchicalReferences, nodeclassmask=ua.NodeClass.Unspecified):
+    def get_children(self, refs=ua.ObjectIds.HierarchicalReferences, nodeclassmask=ua.NodeClass.Unspecified, maxReferencesPerNode=0):
         """
         Get all children of a node. By default hierarchical references and all node classes are returned.
         Other reference types may be given:
@@ -313,7 +313,7 @@ class Node(object):
         HasNotifier = 48
         HasOrderedComponent = 49
         """
-        return self.get_referenced_nodes(refs, ua.BrowseDirection.Forward, nodeclassmask)
+        return self.get_referenced_nodes(refs, ua.BrowseDirection.Forward, nodeclassmask, maxReferencesPerNode=maxReferencesPerNode)
 
     def get_properties(self):
         """
@@ -336,8 +336,8 @@ class Node(object):
         """
         return self.get_children(refs=ua.ObjectIds.HasComponent, nodeclassmask=ua.NodeClass.Method)
 
-    def get_children_descriptions(self, refs=ua.ObjectIds.HierarchicalReferences, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True):
-        return self.get_references(refs, ua.BrowseDirection.Forward, nodeclassmask, includesubtypes)
+    def get_children_descriptions(self, refs=ua.ObjectIds.HierarchicalReferences, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True, maxReferencesPerNode=0):
+        return self.get_references(refs, ua.BrowseDirection.Forward, nodeclassmask, includesubtypes, maxReferencesPerNode)
 
     def get_encoding_refs(self):
         return self.get_referenced_nodes(ua.ObjectIds.HasEncoding, ua.BrowseDirection.Forward)
@@ -345,7 +345,7 @@ class Node(object):
     def get_description_refs(self):
         return self.get_referenced_nodes(ua.ObjectIds.HasDescription, ua.BrowseDirection.Forward)
 
-    def get_references(self, refs=ua.ObjectIds.References, direction=ua.BrowseDirection.Both, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True):
+    def get_references(self, refs=ua.ObjectIds.References, direction=ua.BrowseDirection.Both, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True, maxReferencesPerNode=0):
         """
         returns references of the node based on specific filter defined with:
 
@@ -365,7 +365,7 @@ class Node(object):
         params = ua.BrowseParameters()
         params.View.Timestamp = ua.get_win_epoch()
         params.NodesToBrowse.append(desc)
-        params.RequestedMaxReferencesPerNode = 0
+        params.RequestedMaxReferencesPerNode = maxReferencesPerNode
         results = self.server.browse(params)
 
         references = self._browse_next(results)
@@ -381,13 +381,13 @@ class Node(object):
             references.extend(results[0].References)
         return references
 
-    def get_referenced_nodes(self, refs=ua.ObjectIds.References, direction=ua.BrowseDirection.Both, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True):
+    def get_referenced_nodes(self, refs=ua.ObjectIds.References, direction=ua.BrowseDirection.Both, nodeclassmask=ua.NodeClass.Unspecified, includesubtypes=True, maxReferencesPerNode=0):
         """
         returns referenced nodes based on specific filter
         Paramters are the same as for get_references
 
         """
-        references = self.get_references(refs, direction, nodeclassmask, includesubtypes)
+        references = self.get_references(refs, direction, nodeclassmask, includesubtypes, maxReferencesPerNode)
         nodes = []
         for desc in references:
             node = Node(self.server, desc.NodeId)
