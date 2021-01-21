@@ -39,10 +39,9 @@ class SessionState(Enum):
 
 class InternalServer(object):
 
-    def __init__(self, shelffile=None, parent=None, session_cls=None):
+    def __init__(self, shelffile=None, user_manager=None, session_cls=None):
         self.logger = logging.getLogger(__name__)
 
-        self._parent = parent
         self.server_callback_dispatcher = CallbackDispatcher()
 
         self.endpoints = []
@@ -63,19 +62,17 @@ class InternalServer(object):
         self.subscription_service = SubscriptionService(self.aspace)
 
         self.history_manager = HistoryManager(self)
+        self.user_manager = user_manager
 
         # create a session to use on server side
         self.session_cls = session_cls or InternalSession
         self.isession = self.session_cls(self, self.aspace, \
           self.subscription_service, "Internal", user=UserManager.User.Admin)
 
+        self.server_status_node = Node(self.isession, ua.NodeId(ua.ObjectIds.Server_ServerStatus))
         self.current_time_node = Node(self.isession, ua.NodeId(ua.ObjectIds.Server_ServerStatus_CurrentTime))
         self._address_space_fixes()
         self.setup_nodes()
-
-    @property
-    def user_manager(self):
-        return self._parent.user_manager
 
     @property
     def thread_loop(self):
@@ -199,6 +196,9 @@ class InternalServer(object):
 
     def _set_current_time(self):
         self.current_time_node.set_value(datetime.utcnow())
+        ssdata = self.server_status_node.get_value()
+        ssdata.CurrentTime = datetime.utcnow()
+        self.server_status_node.set_value(ssdata)
         self.loop.call_later(1, self._set_current_time)
 
     def get_new_channel_id(self):
